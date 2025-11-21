@@ -23,30 +23,28 @@ class AccessTokenBearer(HTTPBearer):
         
         token_data = decode_token(token)
         
-        if not self.token_valid:
+        if not self.token_valid(token):
             raise HTTPException(
                 status_code = status.HTTP_403_FORBIDDEN,
                 detail="Invalid or expired token"
             )
         
-        if token_data['refresh']:
+        if token_data.get('refresh', False):
             raise HTTPException(
-                status_code = status.HTTP_403_FORBIDDEN,
+                status_code=status.HTTP_403_FORBIDDEN,
                 detail="Please provide access token"
             )
         
-        return creds
-    
         if await token_in_blocklist(token_data['jti']):
-                raise HTTPException(
-                    status_code = status.HTTP_403_FORBIDDEN,
-                    detail={
-                        "error":"Token has been revoked",
-                        "resolution":"Please get a new token by logging in again"
-                            
-                            }
-                    
-                )
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail={
+                    "error": "Token has been revoked",
+                    "resolution": "Please get a new token by logging in again"
+                }
+            )
+        
+        return token_data
         
     def token_valid(self, token: str) -> bool:
         
@@ -65,5 +63,11 @@ async def get_current_user(
     user_email = token_details['user']['email']
     
     user = await user_service.get_user_by_email(user_email, session)
+    
+    if user is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
     
     return user

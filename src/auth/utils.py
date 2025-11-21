@@ -1,27 +1,22 @@
-from passlib.context import CryptContext
+import bcrypt
 from datetime import timedelta, datetime
 from src.config import Config
 import jwt
 import uuid
 import logging
 
-passwd_context = CryptContext(
-    schemes=["bcrypt"], deprecated="auto"
-)
-
 ACCESS_TOKEN_EXPIRY = 3600
 
 def generate_passwd_hash(password: str) -> str:
-    
-    hash = passwd_context.hash(password)
-    
-    return hash
+    password_bytes = password.encode('utf-8')
+    salt = bcrypt.gensalt()
+    hash = bcrypt.hashpw(password_bytes, salt)
+    return hash.decode('utf-8')
 
 def verify_password(password: str, hash: str) -> bool:
-    
-    is_valid = passwd_context.verify(password, hash)
-    
-    return is_valid
+    password_bytes = password.encode('utf-8')
+    hash_bytes = hash.encode('utf-8')
+    return bcrypt.checkpw(password_bytes, hash_bytes)
 
 def create_access_token(user_data:dict,expiry:timedelta= None, refresh:bool=False):
     payload = {}

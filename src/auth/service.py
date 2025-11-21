@@ -26,7 +26,7 @@ class UserService:
         user_data_dict = user_data.model_dump()
         
         new_user = User(
-            **user_data
+            **user_data_dict
             )
         
         new_user.password_hash = generate_passwd_hash(user_data_dict["password"])

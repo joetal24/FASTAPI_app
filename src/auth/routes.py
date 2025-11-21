@@ -40,8 +40,38 @@ async def create_user_account(
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User with this email already exists")
     
     new_user = await user_service.create_user(user_data, session)
+    # Generate tokens for the new user
+    access_token = create_access_token(
+        user_data={
+            'email': new_user.email,
+            'user_uid': str(new_user.uid),
+        }
+    )
     
-    return new_user
+    refresh_token = create_access_token(
+        user_data={
+            'email': new_user.email,
+            'user_uid': str(new_user.uid),
+        },
+        refresh=True,
+        expiry=timedelta(days=REFRESH_TOKEN_EXPIRY)
+    )
+    
+    return JSONResponse(
+        content={
+            "message": "Account created successfully",
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "user": {
+                "uid": str(new_user.uid),
+                "email": new_user.email,
+                "username": new_user.username,
+                "first_name": new_user.first_name,
+                "last_name": new_user.last_name
+            }
+        },
+        status_code=status.HTTP_201_CREATED
+    )
 
 @auth_router.post(
     "/login")
